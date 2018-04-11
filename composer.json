@@ -1,0 +1,22 @@
+{
+	"name": "tuckerrr/qr-cli",
+	"description": "CLI QR code generator",
+	"type": "project",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Kyle Tucker",
+			"email": "kyleatucker@gmail.com"
+		}
+	],
+	"require": {
+		"php": ">=7.1",
+		"chillerlan/php-qrcode": "^2.0",
+		"symfony/console": "^4.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Tuckerrr\\Qr\\": "src/"
+		}
+	}
+}
