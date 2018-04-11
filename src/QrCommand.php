@@ -125,7 +125,6 @@ class QrCommand extends Command
 			$options = new QROptions(array_merge($defaultOptions, $optionData));
 			$generator->setOptions($options);
 
-			// $out->writeln($generator->render($in->getArgument('url')));
 			$bytesWritten = $file->fwrite($generator->render($in->getArgument('url')));
 			$out->writeln(sprintf('Wrote %d bytes to <info>%s</info>', $bytesWritten, $fullPath));
 			$file = null;
