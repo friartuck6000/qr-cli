@@ -2,10 +2,13 @@
 
 namespace Tuckerrr\Qr;
 
+use chillerlan\QRCode\Output\QRImage;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Exception\InvalidOptionException;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -42,11 +45,35 @@ class QrCommand extends Command
 				'o',
 				InputOption::VALUE_REQUIRED,
 				'Output file path. Extension will be managed automatically based on output formats.'
+			)
+			->addOption(
+				'scale',
+				null,
+				InputOption::VALUE_REQUIRED,
+				'Output scale for raster formats; the size of a single block in pixels.',
+				10
 			);
 	}
 
 	protected function interact(InputInterface $in, OutputInterface $out)
 	{
+		$url = $in->getArgument('url');
+		if (!$url) {
+			// Prompt the user for an output file path
+			/** @var QuestionHelper $questionHelper */
+			$questionHelper = $this->getHelper('question');
+
+			$question = new Question('What URL should I encode? ', null);
+			do {
+				$url = $questionHelper->ask($in, $out, $question);
+			} while ($url === null);
+		}
+
+		if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+			throw new InvalidArgumentException(sprintf('Invalid URL "%s".', $url));
+		}
+		$in->setArgument('url', $url);
+
 		$filename = $in->getOption('out');
 		if (!$filename) {
 			// Prompt the user for an output file path
@@ -82,12 +109,26 @@ class QrCommand extends Command
 		];
 
 		foreach ($in->getOption('format') as $format) {
-			$options = new QROptions(array_merge($defaultOptions, [
-				'outputType' => $this->outputTypes[$format],
-			]));
+			$fullPath = sprintf('%s.%s', $filePath, $format);
+			$file = new \SplFileObject($fullPath, 'w');
+
+			$outputType = $this->outputTypes[$format];
+			$optionData = [
+				'outputType' => $outputType,
+			];
+			// Update module values for image output types
+			if (in_array($outputType, QRCode::OUTPUT_MODES[QRImage::class])) {
+				$optionData['imageBase64'] = false;
+				$optionData['scale'] = $in->getOption('scale');
+			}
+
+			$options = new QROptions(array_merge($defaultOptions, $optionData));
 			$generator->setOptions($options);
-			$rendered = $generator->render($in->getArgument('url'));
-			$out->writeln(sprintf('Wrote %s.%s: %d bytes', $filePath, $format, strlen($rendered)));
+
+			// $out->writeln($generator->render($in->getArgument('url')));
+			$bytesWritten = $file->fwrite($generator->render($in->getArgument('url')));
+			$out->writeln(sprintf('Wrote %d bytes to <info>%s</info>', $bytesWritten, $fullPath));
+			$file = null;
 		}
 	}
 }
