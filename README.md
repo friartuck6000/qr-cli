@@ -17,7 +17,9 @@ git clone https://github.com/friartuck6000/qr-cli.git && cd qr-cli
 composer install
 ```
 
-### Usage
+That's it, you're all set to go.
+
+## Usage
 
 ```bash
 $ bin/console create
